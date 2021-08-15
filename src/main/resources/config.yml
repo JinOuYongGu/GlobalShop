@@ -1,0 +1,13 @@
+config-version: 1
+
+mysql:
+  enable: true
+  host: localhost
+  port: 3306
+  database: 'server'
+  username: '691422759'
+  password: '1996612'
+  table: 'test691422759'
+
+shop:
+  valid-time-in-mins: 4320

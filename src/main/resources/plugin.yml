@@ -1,0 +1,10 @@
+name: GlobalShop
+version: ${project.version}
+main: me.jinou.globalshop.GlobalShop
+api-version: 1.16
+authors: [ Jin_ou ]
+depend:
+  - Vault
+commands:
+  globalshop:
+    aliases: gs

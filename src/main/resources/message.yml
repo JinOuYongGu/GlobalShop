@@ -1,0 +1,53 @@
+msg:
+  prefix: "§b[商店] §a"
+
+  sell: 成功卖出
+  buy: 成功买入
+  open-gui: 你打开了全球市场
+
+  day: 天
+  hour: 时
+  minute: 分
+
+  error-player-only: 仅可玩家使用
+  error-sell: 使用格式错误 正确用法： /gs sell [数字]
+  error-no-such-item: 商品不存在 可能已被他人买去
+  error-lack-money: 资金不足
+  error-full-inv: 背包已满
+  reload: 插件重载完毕
+  help: |
+    使用说明
+    gs sell [价格] - 上架物品
+
+  cmd-price: [ 价格 ]
+  cmd-invalid: 无效的命令 可使用 /gs help 查看帮助
+
+  gui-shop-title: 全球市场
+  gui-info-title: 商品详情
+  gui-accept-icon-title: §a确认
+  gui-accept-icon-lore:
+    - §e确认购买
+  gui-cancel-icon-title: §c取消
+  gui-cancel-icon-lore:
+    - §e取消购买
+  gui-prev-page-icon-title: §a< 上一页
+  gui-prev-page-icon-lore:
+    - §e上一页
+  gui-next-page-icon-title: §a下一页 >
+  gui-next-page-icon-lore:
+    - §e下一页
+  gui-filter-icon-title: §a当前排序方式
+  gui-filter-icon-ta-lore:
+    - §e由旧到新
+  gui-filter-icon-td-lore:
+    - §e由新到旧
+  gui-filter-icon-pa-lore:
+    - §e价格升序
+  gui-filter-icon-pd-lore:
+    - §e价格降序
+  gui-self-item: 无法购买自己的物品
+  gui-shop-item-lore:
+    - '类型: {TYPE}'
+    - '价格: {PRICE}'
+    - '所有者: {OWNER}'
+    - '有效期: {DAY}{HOUR}{MINUTE}'
