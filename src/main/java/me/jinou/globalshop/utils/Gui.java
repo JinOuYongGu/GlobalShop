@@ -1,7 +1,7 @@
 package me.jinou.globalshop.utils;
 
-import me.jinou.globalshop.data.IDataManager;
 import me.jinou.globalshop.GlobalShop;
+import me.jinou.globalshop.data.IDataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -29,6 +29,10 @@ public class Gui {
         holder.setFilter(filter);
         Inventory inventory = Bukkit.createInventory(holder, 9 * 6, guiName);
 
+        ItemStack selfItemIcon = makeIcon(Material.ENDER_CHEST,
+                "gui-self-item-icon-title",
+                "gui-self-item-icon-lore");
+
         ItemStack prevPageIcon = makeIcon(Material.PINK_DYE,
                 "gui-prev-page-icon-title",
                 "gui-prev-page-icon-lore");
@@ -55,6 +59,7 @@ public class Gui {
                 "gui-filter-icon-title",
                 filterIconLoreKey);
 
+        inventory.setItem(46, selfItemIcon);
         inventory.setItem(48, prevPageIcon);
         inventory.setItem(50, nextPageIcon);
         inventory.setItem(52, filterIcon);
@@ -106,16 +111,20 @@ public class Gui {
         long validHour = validTime / (60 * 60 * 1000);
         validTime = validHour > 0 ? validTime % (validHour * 60 * 60 * 1000) : validTime;
         long validMinute = validTime / (60 * 1000);
+        validTime = validMinute > 0 ? validTime % (validMinute * 60 * 1000) : validTime;
 
         String dayLore = "";
-        if (validDay != 0) {
+        if (validDay > 0) {
             dayLore = validDay + MsgUtil.get("day", false);
         }
         String hourLore = "";
-        if (validHour != 0) {
+        if (validHour > 0) {
             hourLore = validHour + MsgUtil.get("hour", false);
         }
-        String minLore = validMinute + MsgUtil.get("minute", false);
+        String minLore = "";
+        if (validMinute > 0) {
+            minLore = validMinute + MsgUtil.get("minute", false);
+        }
 
         List<String> iconLore;
         if (meta.getLore() != null) {
@@ -131,6 +140,9 @@ public class Gui {
             lore = lore.replace("{HOUR}", hourLore);
             lore = lore.replace("{MINUTE}", minLore);
             iconLore.add(lore);
+        }
+        if (validTime < 0) {
+            iconLore.addAll(MsgUtil.getList("gui-item-expired-lore"));
         }
 
         meta.setLore(iconLore);
@@ -171,6 +183,55 @@ public class Gui {
         inventory.setItem(8, cancelIcon);
 
         player.openInventory(inventory);
+    }
+
+    public static void openSelfGui(Player player, int page) {
+        GsInvHolder guiHolder = new GsInvHolder();
+        guiHolder.setCurrentPage(page);
+        String guiName = MsgUtil.get("gui-self-item-title", false);
+        guiHolder.setInventoryName(guiName);
+        Inventory inventory = Bukkit.createInventory(guiHolder, 9 * 6, guiName);
+
+        ItemStack backShopIcon = makeIcon(Material.CHEST,
+                "gui-back-shop-icon-title",
+                "gui-back-shop-icon-lore");
+
+        ItemStack prevPageIcon = makeIcon(Material.PINK_DYE,
+                "gui-prev-page-icon-title",
+                "gui-prev-page-icon-lore");
+
+        ItemStack nextPageIcon = makeIcon(Material.LIME_DYE,
+                "gui-next-page-icon-title",
+                "gui-next-page-icon-lore");
+
+        inventory.setItem(46, backShopIcon);
+        inventory.setItem(48, prevPageIcon);
+        inventory.setItem(50, nextPageIcon);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                List<ShopItem> shopItems = DATA_MANAGER.getPlayerAllShopItems(player.getUniqueId(), page * 45, 5 * 9);
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        for (int idx = 0; idx < shopItems.size(); idx++) {
+                            ShopItem shopItem = shopItems.get(idx);
+
+                            // Create shop item icon
+                            inventory.setItem(idx, createShopItemIcon(shopItem));
+                        }
+                        GsInvHolder shopHolder = (GsInvHolder) (inventory.getHolder());
+                        if (shopHolder == null) {
+                            return;
+                        }
+                        shopHolder.setShopItems(shopItems);
+
+                        player.openInventory(inventory);
+                    }
+                }.runTask(PLUGIN);
+            }
+        }.runTaskAsynchronously(PLUGIN);
     }
 
     public static ItemStack makeIcon(Material material, String titleKey, String loreKey) {

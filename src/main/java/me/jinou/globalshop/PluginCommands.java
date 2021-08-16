@@ -10,10 +10,12 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +23,8 @@ import java.util.List;
  * @author 69142
  */
 public class PluginCommands implements CommandExecutor, TabCompleter {
+    private static final FileConfiguration config = GlobalShop.getFileConfig();
+
     @Override
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, String[] args) {
         if (args.length == 0) {
@@ -95,23 +99,32 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             return false;
         }
 
+        List<String> blackListItems = config.getStringList("shop.item-black-list");
+        String itemMaterial = player.getInventory().getItemInMainHand().getType().toString();
+        if (blackListItems.contains(itemMaterial)) {
+            player.sendMessage(MsgUtil.get("error-black-list-item"));
+            return false;
+        }
+
         double price;
         try {
             price = Double.parseDouble(args[1]);
+            price = Double.parseDouble(new DecimalFormat("#.00").format(price));
         } catch (NumberFormatException e) {
             player.sendMessage(MsgUtil.get("error-sell"));
             return false;
         }
 
-        // TODO check price
-        if (price <= 0) {
-            player.sendMessage(MsgUtil.get("error-sell"));
+        if (price <= 0
+                || price < config.getDouble("shop.min-sell-price")
+                || price > config.getDouble("shop.max-sell-price")) {
+            player.sendMessage(MsgUtil.get("error-invalid-price"));
             return false;
         }
 
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
         if (itemInHand.getType() == Material.AIR) {
-            player.sendMessage(MsgUtil.get("error-item"));
+            player.sendMessage(MsgUtil.get("error-empty-hand"));
             return false;
         }
 

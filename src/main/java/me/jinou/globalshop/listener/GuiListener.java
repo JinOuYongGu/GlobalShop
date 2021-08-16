@@ -1,5 +1,6 @@
 package me.jinou.globalshop.listener;
 
+import lombok.NonNull;
 import me.jinou.globalshop.GlobalShop;
 import me.jinou.globalshop.utils.*;
 import org.bukkit.entity.Player;
@@ -10,10 +11,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.HashMap;
+import java.util.UUID;
+
 /**
  * @author 69142
  */
 public class GuiListener implements Listener {
+    private static HashMap<UUID, Long> playerClickTimes = new HashMap<>();
 
     @EventHandler
     public void onInvClick(InventoryClickEvent event) {
@@ -27,6 +32,15 @@ public class GuiListener implements Listener {
             return;
         }
 
+        UUID playerUuid = event.getWhoClicked().getUniqueId();
+        if (!playerClickTimes.containsKey(playerUuid)) {
+            playerClickTimes.put(playerUuid, System.currentTimeMillis());
+        }
+        if (System.currentTimeMillis() - playerClickTimes.get(playerUuid)
+                < GlobalShop.getFileConfig().getLong("shop.gui-min-click-interval")) {
+            return;
+        }
+
         String guiName = ((GsInvHolder) holder).getInventoryName();
         if (guiName.equals(MsgUtil.get("gui-shop-title", false))) {
             shopClick(event);
@@ -36,9 +50,95 @@ public class GuiListener implements Listener {
             infoClick(event);
             return;
         }
+        if (guiName.equals(MsgUtil.get("gui-self-item-title", false))) {
+            selfClick(event);
+            return;
+        }
     }
 
-    private void infoClick(InventoryClickEvent event) {
+    private void selfClick(@NonNull InventoryClickEvent event) {
+        int slotId = event.getRawSlot();
+        if (slotId < 0 || slotId > 6 * 9 - 1) {
+            return;
+        }
+
+        Inventory guiInv = event.getInventory();
+        GsInvHolder guiHolder = (GsInvHolder) guiInv.getHolder();
+        if (guiHolder == null) {
+            return;
+        }
+
+        Player player = (Player) event.getWhoClicked();
+        int page = guiHolder.getCurrentPage();
+        String type = guiHolder.getType();
+        String filter = guiHolder.getFilter();
+
+        // Click next page
+        if (slotId == 50) {
+            if (guiHolder.getShopItems().size() < 45) {
+                return;
+            }
+            Gui.openSelfGui(player, page + 1);
+            return;
+        }
+
+        // Click prev page
+        if (slotId == 48) {
+            if (guiHolder.getCurrentPage() == 0) {
+                return;
+            }
+            Gui.openSelfGui(player, page - 1);
+        }
+
+        // Click back icon
+        if (slotId == 46) {
+            Gui.openShopGui(player, page, type, filter);
+            return;
+        }
+
+        // Click self item icon
+        if (slotId <= guiHolder.getShopItems().size() - 1) {
+            ShopItem guiShopItem = guiHolder.getShopItems().get(slotId);
+            int uid = guiShopItem.getUid();
+
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    ShopItem dbShopItem = GlobalShop.get().getDataManager().getShopItem(uid);
+
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            if (!player.isOnline()) {
+                                return;
+                            }
+
+                            if (dbShopItem == null) {
+                                player.sendMessage(MsgUtil.get("error-no-such-item"));
+                                Gui.setIconTitle(guiInv, slotId, MsgUtil.get("error-no-such-item", false));
+                                return;
+                            }
+
+                            int firstEmpty = player.getInventory().firstEmpty();
+                            if (firstEmpty == -1) {
+                                player.sendMessage(MsgUtil.get("error-full-inv"));
+                                Gui.setIconTitle(guiInv, slotId, MsgUtil.get("error-full-inv", false));
+                                return;
+                            }
+
+                            GlobalShop.get().getDataManager().removeShopItem(uid);
+
+                            player.getInventory().setItem(firstEmpty, dbShopItem.getItemStack());
+                            player.sendMessage(MsgUtil.get("back"));
+                            Gui.openSelfGui(player, page);
+                        }
+                    }.runTask(GlobalShop.get());
+                }
+            }.runTaskAsynchronously(GlobalShop.get());
+        }
+    }
+
+    private void infoClick(@NonNull InventoryClickEvent event) {
         int slotId = event.getRawSlot();
         if (slotId < 0 || slotId > 8) {
             return;
@@ -74,6 +174,10 @@ public class GuiListener implements Listener {
                     new BukkitRunnable() {
                         @Override
                         public void run() {
+                            if (!player.isOnline()) {
+                                return;
+                            }
+
                             if (dbShopItem == null) {
                                 player.sendMessage(MsgUtil.get("error-no-such-item"));
                                 Gui.setIconTitle(guiInv, slotId, MsgUtil.get("error-no-such-item", false));
@@ -103,6 +207,7 @@ public class GuiListener implements Listener {
                             GlobalShop.get().getDataManager().removeShopItem(uid);
 
                             EcoVault.removeMoney(player.getUniqueId(), dbShopItem.getPrice());
+                            EcoVault.addMoney(dbShopItem.getOwnerId(), dbShopItem.getPrice());
                             player.getInventory().setItem(firstEmpty, dbShopItem.getItemStack());
                             player.sendMessage(MsgUtil.get("buy"));
                             Gui.openShopGui(player, page, type, filter);
@@ -113,7 +218,7 @@ public class GuiListener implements Listener {
         }
     }
 
-    private void shopClick(InventoryClickEvent event) {
+    private void shopClick(@NonNull InventoryClickEvent event) {
         int slotId = event.getRawSlot();
         if (slotId < 0 || slotId > 6 * 9 - 1) {
             return;
@@ -170,6 +275,11 @@ public class GuiListener implements Listener {
                 Gui.openShopGui(player, page, type, "timeDescend");
             }
             return;
+        }
+
+        // Click self item icon
+        if (slotId == 46) {
+            Gui.openSelfGui(player, 0);
         }
     }
 }

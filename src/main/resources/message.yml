@@ -1,20 +1,24 @@
 msg:
   prefix: "§b[商店] §a"
 
-  sell: 成功卖出
-  buy: 成功买入
-  open-gui: 你打开了全球市场
+  sell: §a成功卖出
+  buy: §a成功买入
+  open-gui: §a你打开了全球市场
+  back: §a成功取回上架物品
 
   day: 天
   hour: 时
   minute: 分
 
-  error-player-only: 仅可玩家使用
-  error-sell: 使用格式错误 正确用法： /gs sell [数字]
-  error-no-such-item: 商品不存在 可能已被他人买去
-  error-lack-money: 资金不足
-  error-full-inv: 背包已满
-  reload: 插件重载完毕
+  error-player-only: §e仅可玩家使用
+  error-sell: §e使用格式错误 正确用法： /gs sell [数字]
+  error-no-such-item: §e商品已售出或过期
+  error-lack-money: §e资金不足
+  error-full-inv: §e背包已满
+  error-black-list-item: §e此类物品无法在市场售卖
+  error-invalid-price: §e允许的价格范围为0.1~100000铜币
+
+  reload: §a插件重载完毕
   help: |
     使用说明
     gs sell [价格] - 上架物品
@@ -24,12 +28,19 @@ msg:
 
   gui-shop-title: 全球市场
   gui-info-title: 商品详情
+  gui-self-item-title: 个人订单
   gui-accept-icon-title: §a确认
   gui-accept-icon-lore:
     - §e确认购买
   gui-cancel-icon-title: §c取消
   gui-cancel-icon-lore:
     - §e取消购买
+  gui-self-item-icon-title: §a个人订单
+  gui-self-item-icon-lore:
+    - §e查看/下架/管理
+  gui-back-shop-icon-title: §a返回市场
+  gui-back-shop-icon-lore:
+    - §e返回全球市场
   gui-prev-page-icon-title: §a< 上一页
   gui-prev-page-icon-lore:
     - §e上一页
@@ -45,9 +56,15 @@ msg:
     - §e价格升序
   gui-filter-icon-pd-lore:
     - §e价格降序
-  gui-self-item: 无法购买自己的物品
+  gui-self-item: §e无法购买自己的商品 可通过下架取回
   gui-shop-item-lore:
-    - '类型: {TYPE}'
-    - '价格: {PRICE}'
-    - '所有者: {OWNER}'
-    - '有效期: {DAY}{HOUR}{MINUTE}'
+    - '§a类型: §e{TYPE}'
+    - '§a价格: §e{PRICE}'
+    - '§a所有者: §e{OWNER}'
+    - '§a有效期: §e{DAY}{HOUR}{MINUTE}'
+  gui-item-expired-lore:
+    - §d该商品已到期
+    - §d其他玩家将无法看到此商品
+    - §d点击进行下架
+  gui-shop-item-type-sell: 出售
+  gui-shop-item-type-buy: 收购

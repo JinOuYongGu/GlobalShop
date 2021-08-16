@@ -138,22 +138,22 @@ public class DatabaseManager implements IDataManager {
     @Override
     public List<ShopItem> getShopItems(String type, String filter, int startIdx, int length) {
         String sqlString;
-        if (type.equalsIgnoreCase("sell")) {
+        if ("sell".equalsIgnoreCase(type)) {
             sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `type` = 'sell' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
-        } else if (type.equalsIgnoreCase("buy")) {
+        } else if ("buy".equalsIgnoreCase(type)) {
             sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `type` = 'buy' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
         } else {
             sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
         }
 
         String sqlFilter = "time DESC";
-        if (filter.equalsIgnoreCase("timeDescend")) {
+        if ("timeDescend".equalsIgnoreCase(filter)) {
             sqlFilter = "time DESC";
-        } else if (filter.equalsIgnoreCase("timeAscend")) {
+        } else if ("timeAscend".equalsIgnoreCase(filter)) {
             sqlFilter = "time ASC";
-        } else if (filter.equalsIgnoreCase("priceDescend")) {
+        } else if ("priceDescend".equalsIgnoreCase(filter)) {
             sqlFilter = "price DESC";
-        } else if (filter.equalsIgnoreCase("priceAscend")) {
+        } else if ("priceAscend".equalsIgnoreCase(filter)) {
             sqlFilter = "price ASC";
         }
         sqlString = sqlString.replace("{FILTER}", sqlFilter);
@@ -168,6 +168,38 @@ public class DatabaseManager implements IDataManager {
              PreparedStatement ps = connection.prepareStatement(sqlString)) {
             ps.setInt(1, startIdx);
             ps.setInt(2, length);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                ShopItem shopItem = new ShopItem(
+                        rs.getInt(1),
+                        rs.getString(2),
+                        UUID.fromString(rs.getString(3)),
+                        ITEM_STACK_SERIALIZER.fromBase64(rs.getString(4)),
+                        rs.getDouble(5),
+                        rs.getString(6),
+                        rs.getLong(7)
+                );
+                shopItems.add(shopItem);
+            }
+
+            rs.close();
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        }
+        return shopItems;
+    }
+
+    @Override
+    public List<ShopItem> getPlayerAllShopItems(UUID playerUuid, int startIdx, int length) {
+        String sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `owner_id` = ? ORDER BY time DESC LIMIT ?,?;";
+
+        List<ShopItem> shopItems = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sqlString)) {
+            ps.setString(1, playerUuid.toString());
+            ps.setInt(2, startIdx);
+            ps.setInt(3, length);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
