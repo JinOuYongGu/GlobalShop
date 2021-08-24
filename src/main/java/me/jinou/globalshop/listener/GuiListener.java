@@ -2,7 +2,9 @@ package me.jinou.globalshop.listener;
 
 import lombok.NonNull;
 import me.jinou.globalshop.GlobalShop;
+import me.jinou.globalshop.api.events.GsBuyEvent;
 import me.jinou.globalshop.utils.*;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -28,17 +30,21 @@ public class GuiListener implements Listener {
             return;
         }
         event.setCancelled(true);
+
         if (event.getRawSlot() < 0) {
             return;
         }
 
         UUID playerUuid = event.getWhoClicked().getUniqueId();
-        if (!playerClickTimes.containsKey(playerUuid)) {
+        if (playerClickTimes.containsKey(playerUuid)) {
+            if (System.currentTimeMillis() - playerClickTimes.get(playerUuid)
+                    < GlobalShop.getFileConfig().getLong("shop.gui-min-click-interval")) {
+                return;
+            } else {
+                playerClickTimes.put(playerUuid, System.currentTimeMillis());
+            }
+        } else if (!playerClickTimes.containsKey(playerUuid)) {
             playerClickTimes.put(playerUuid, System.currentTimeMillis());
-        }
-        if (System.currentTimeMillis() - playerClickTimes.get(playerUuid)
-                < GlobalShop.getFileConfig().getLong("shop.gui-min-click-interval")) {
-            return;
         }
 
         String guiName = ((GsInvHolder) holder).getInventoryName();
@@ -92,7 +98,7 @@ public class GuiListener implements Listener {
 
         // Click back icon
         if (slotId == 46) {
-            Gui.openShopGui(player, page, type, filter);
+            Gui.openShopGui(player, 0, type, filter);
             return;
         }
 
@@ -184,7 +190,8 @@ public class GuiListener implements Listener {
                                 return;
                             }
 
-                            if (EcoVault.getMoney(player.getUniqueId()) < dbShopItem.getPrice()) {
+                            UUID buyerUuid = player.getUniqueId();
+                            if (EcoVault.getMoney(buyerUuid) < dbShopItem.getPrice()) {
                                 player.sendMessage(MsgUtil.get("error-lack-money"));
                                 Gui.setIconTitle(guiInv, slotId, MsgUtil.get("error-lack-money", false));
                                 return;
@@ -204,9 +211,15 @@ public class GuiListener implements Listener {
                                 return;
                             }
 
+                            GsBuyEvent gsBuyEvent = new GsBuyEvent(buyerUuid, dbShopItem);
+                            Bukkit.getPluginManager().callEvent(gsBuyEvent);
+                            if (gsBuyEvent.isCancelled()) {
+                                return;
+                            }
+
                             GlobalShop.get().getDataManager().removeShopItem(uid);
 
-                            EcoVault.removeMoney(player.getUniqueId(), dbShopItem.getPrice());
+                            EcoVault.removeMoney(buyerUuid, dbShopItem.getPrice());
                             EcoVault.addMoney(dbShopItem.getOwnerId(), dbShopItem.getPrice());
                             player.getInventory().setItem(firstEmpty, dbShopItem.getItemStack());
                             player.sendMessage(MsgUtil.get("buy"));
@@ -239,7 +252,7 @@ public class GuiListener implements Listener {
         if (slotId <= guiHolder.getShopItems().size() - 1) {
             ShopItem shopItem = guiHolder.getShopItems().get(slotId);
             if (shopItem.getOwnerId().equals(player.getUniqueId())) {
-                Gui.setIconTitle(guiInv, slotId, MsgUtil.get("gui-self-item", false));
+                Gui.appendIconLore(guiInv, slotId, MsgUtil.getList("gui-self-item-tip-lore"));
                 return;
             }
             Gui.openInfoGui(player, shopItem, page, type, filter);

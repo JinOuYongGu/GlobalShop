@@ -29,6 +29,10 @@ public class Gui {
         holder.setFilter(filter);
         Inventory inventory = Bukkit.createInventory(holder, 9 * 6, guiName);
 
+        ItemStack descriptionIcon = makeIcon(Material.EMERALD,
+                "gui-shop-description-icon-title",
+                "gui-shop-description-icon-lore");
+
         ItemStack selfItemIcon = makeIcon(Material.ENDER_CHEST,
                 "gui-self-item-icon-title",
                 "gui-self-item-icon-lore");
@@ -61,6 +65,7 @@ public class Gui {
 
         inventory.setItem(46, selfItemIcon);
         inventory.setItem(48, prevPageIcon);
+        inventory.setItem(49, descriptionIcon);
         inventory.setItem(50, nextPageIcon);
         inventory.setItem(52, filterIcon);
 
@@ -192,6 +197,10 @@ public class Gui {
         guiHolder.setInventoryName(guiName);
         Inventory inventory = Bukkit.createInventory(guiHolder, 9 * 6, guiName);
 
+        ItemStack descriptionIcon = makeIcon(Material.END_CRYSTAL,
+                "gui-self-description-icon-title",
+                "gui-self-description-icon-lore");
+
         ItemStack backShopIcon = makeIcon(Material.CHEST,
                 "gui-back-shop-icon-title",
                 "gui-back-shop-icon-lore");
@@ -206,12 +215,13 @@ public class Gui {
 
         inventory.setItem(46, backShopIcon);
         inventory.setItem(48, prevPageIcon);
+        inventory.setItem(49, descriptionIcon);
         inventory.setItem(50, nextPageIcon);
 
         new BukkitRunnable() {
             @Override
             public void run() {
-                List<ShopItem> shopItems = DATA_MANAGER.getPlayerAllShopItems(player.getUniqueId(), page * 45, 5 * 9);
+                List<ShopItem> shopItems = DATA_MANAGER.getPlayerShopItems(player.getUniqueId(), page * 45, 5 * 9);
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -286,6 +296,30 @@ public class Gui {
             return;
         }
 
+        meta.setLore(lore);
+        icon.setItemMeta(meta);
+    }
+
+    public static void appendIconLore(Inventory inventory, int slotId, List<String> lore) {
+        if (inventory == null || lore == null || inventory.getSize() - 1 < slotId || lore.size() == 0) {
+            return;
+        }
+
+        ItemStack icon = inventory.getItem(slotId);
+        if (icon == null) {
+            return;
+        }
+
+        ItemMeta meta = icon.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+
+        List<String> iconLore = meta.getLore();
+        if (iconLore == null) {
+            iconLore = new ArrayList<>();
+        }
+        iconLore.addAll(lore);
         meta.setLore(lore);
         icon.setItemMeta(meta);
     }

@@ -80,6 +80,9 @@ public final class GlobalShop extends JavaPlugin {
     }
 
     public IDataManager getDataManager() {
+        if (dataManager == null) {
+            dataManager = new DatabaseManager();
+        }
         return dataManager;
     }
 }

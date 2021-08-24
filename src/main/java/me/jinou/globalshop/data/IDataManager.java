@@ -14,7 +14,6 @@ public interface IDataManager {
      * Add an item to shop
      *
      * @param item the trade item
-     * @return true if add item successfully
      */
     void addShopItem(ShopItem item);
 
@@ -28,7 +27,7 @@ public interface IDataManager {
 
     List<ShopItem> getShopItems(String type, String filter, int startIdx, int length);
 
-    List<ShopItem> getPlayerAllShopItems(UUID playerUuid, int startIdx, int length);
+    List<ShopItem> getPlayerShopItems(UUID playerUuid, int startIdx, int length);
 
     int generateUid();
 }

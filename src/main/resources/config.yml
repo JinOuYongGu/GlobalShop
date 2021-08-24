@@ -15,7 +15,8 @@ shop:
   max-sell-price: 100000
   min-sell-price: 0.1
 
-  sell-limit: 8
+  sell-limit: 800
+  gui-min-click-interval: 10000
 
   item-black-list:
     - BEDROCK

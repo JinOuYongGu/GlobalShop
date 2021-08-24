@@ -2,6 +2,7 @@ package me.jinou.globalshop.data;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.NonNull;
 import me.jinou.globalshop.GlobalShop;
 import me.jinou.globalshop.nms.ItemStackSerializer;
 import me.jinou.globalshop.utils.ShopItem;
@@ -38,9 +39,11 @@ public class DatabaseManager implements IDataManager {
             @Override
             public void run() {
                 try (Connection connection = dataSource.getConnection();
-                     PreparedStatement ps = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `" + TABLE_NAME + "` (uid INT PRIMARY KEY NOT NULL, owner_name VARCHAR(32) NOT NULL, owner_id VARCHAR(36) NOT NULL, item LONGTEXT NOT NULL, price DOUBLE NOT NULL, Type VARCHAR(16) NOT NULL, time BIGINT NOT NULL);")
+                     PreparedStatement createShopTable = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `" + TABLE_NAME + "_shop` (uid INT PRIMARY KEY NOT NULL, owner_name VARCHAR(32) NOT NULL, owner_id VARCHAR(36) NOT NULL, item LONGTEXT NOT NULL, price DOUBLE NOT NULL, Type VARCHAR(16) NOT NULL, time BIGINT NOT NULL);");
+                     PreparedStatement createUserTable = connection.prepareStatement("CREATE TABLE IF NOT EXISTS `" + TABLE_NAME + "_user` (uid INT PRIMARY KEY NOT NULL, owner_name VARCHAR(32) NOT NULL, owner_id VARCHAR(36) NOT NULL, money DOUBLE NOT NULL);")
                 ) {
-                    ps.executeUpdate();
+                    createShopTable.executeUpdate();
+                    createUserTable.executeUpdate();
                 } catch (SQLException throwable) {
                     throwable.printStackTrace();
                 }
@@ -49,14 +52,14 @@ public class DatabaseManager implements IDataManager {
     }
 
     @Override
-    public void addShopItem(final ShopItem shopItem) {
+    public void addShopItem(final @NonNull ShopItem shopItem) {
         String base64 = ITEM_STACK_SERIALIZER.toBase64(shopItem.getItemStack());
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 try (Connection connection = dataSource.getConnection();
-                     PreparedStatement ps = connection.prepareStatement("INSERT INTO `" + TABLE_NAME + "` (`uid`, `owner_name`, `owner_id`, `item`, `price`, `Type`, `time`) VALUES (?, ?, ?, ?, ?, ?, ?);")) {
+                     PreparedStatement ps = connection.prepareStatement("INSERT INTO `" + TABLE_NAME + "_shop` (`uid`, `owner_name`, `owner_id`, `item`, `price`, `Type`, `time`) VALUES (?, ?, ?, ?, ?, ?, ?);")) {
                     ps.setInt(1, shopItem.getUid());
                     ps.setString(2, shopItem.getOwnerName());
                     ps.setString(3, shopItem.getOwnerId().toString());
@@ -78,7 +81,7 @@ public class DatabaseManager implements IDataManager {
             @Override
             public void run() {
                 try (Connection connection = dataSource.getConnection();
-                     PreparedStatement ps = connection.prepareStatement("DELETE FROM `" + TABLE_NAME + "` WHERE uid = ?;")) {
+                     PreparedStatement ps = connection.prepareStatement("DELETE FROM `" + TABLE_NAME + "_shop` WHERE uid = ?;")) {
                     ps.setInt(1, uid);
                     ps.executeUpdate();
                 } catch (SQLException throwables) {
@@ -95,17 +98,22 @@ public class DatabaseManager implements IDataManager {
         }
     }
 
-    // TODO
     @Override
     public void update() {
     }
 
+    /**
+     * Must be called in async task
+     *
+     * @param uid shop item's uid
+     * @return shop item with specified uid
+     */
     @Override
     public ShopItem getShopItem(int uid) {
         ShopItem shopItem = null;
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM `" + TABLE_NAME + "` WHERE uid = ?;")) {
+             PreparedStatement ps = connection.prepareStatement("SELECT * FROM `" + TABLE_NAME + "_shop` WHERE uid = ?;")) {
             ps.setInt(1, uid);
             ResultSet resultSet = ps.executeQuery();
             if (resultSet.next()) {
@@ -133,17 +141,17 @@ public class DatabaseManager implements IDataManager {
      * @param type     Type of shopItem
      * @param startIdx starting index
      * @param length   end index
-     * @return List of shopItems from MySQL database
+     * @return list of shopItems from MySQL database
      */
     @Override
     public List<ShopItem> getShopItems(String type, String filter, int startIdx, int length) {
         String sqlString;
         if ("sell".equalsIgnoreCase(type)) {
-            sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `type` = 'sell' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
+            sqlString = "SELECT * FROM `" + TABLE_NAME + "_shop` WHERE `type` = 'sell' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
         } else if ("buy".equalsIgnoreCase(type)) {
-            sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `type` = 'buy' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
+            sqlString = "SELECT * FROM `" + TABLE_NAME + "_shop` WHERE `type` = 'buy' && {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
         } else {
-            sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
+            sqlString = "SELECT * FROM `" + TABLE_NAME + "_shop` WHERE {TIME_LIMIT} ORDER BY {FILTER} LIMIT ?,?;";
         }
 
         String sqlFilter = "time DESC";
@@ -190,9 +198,16 @@ public class DatabaseManager implements IDataManager {
         return shopItems;
     }
 
+    /**
+     * Must be called in an async task
+     * @param playerUuid player uuid
+     * @param startIdx start index in database
+     * @param length the count of shop items
+     * @return a list of shop items
+     */
     @Override
-    public List<ShopItem> getPlayerAllShopItems(UUID playerUuid, int startIdx, int length) {
-        String sqlString = "SELECT * FROM `" + TABLE_NAME + "` WHERE `owner_id` = ? ORDER BY time DESC LIMIT ?,?;";
+    public List<ShopItem> getPlayerShopItems(@NonNull UUID playerUuid, int startIdx, int length) {
+        String sqlString = "SELECT * FROM `" + TABLE_NAME + "_shop` WHERE `owner_id` = ? ORDER BY time DESC LIMIT ?,?;";
 
         List<ShopItem> shopItems = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
@@ -226,8 +241,8 @@ public class DatabaseManager implements IDataManager {
     public int generateUid() {
         int uid = -1;
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement findMinPs = connection.prepareStatement("SELECT MIN(uid) FROM `" + TABLE_NAME + "`;");
-             PreparedStatement findMaxPs = connection.prepareStatement("SELECT MAX(uid) FROM `" + TABLE_NAME + "`;")
+             PreparedStatement findMinPs = connection.prepareStatement("SELECT MIN(uid) FROM `" + TABLE_NAME + "_shop`;");
+             PreparedStatement findMaxPs = connection.prepareStatement("SELECT MAX(uid) FROM `" + TABLE_NAME + "_shop`;")
         ) {
             ResultSet minUidRs = findMinPs.executeQuery();
             List<Integer> uids = new ArrayList<>();

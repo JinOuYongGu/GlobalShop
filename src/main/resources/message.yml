@@ -17,6 +17,8 @@ msg:
   error-full-inv: §e背包已满
   error-black-list-item: §e此类物品无法在市场售卖
   error-invalid-price: §e允许的价格范围为0.1~100000铜币
+  error-empty-hand: §e请将要出售的物品放在手中
+  error-sell-limit: §e最多可上架8个物品 您已达到上限
 
   reload: §a插件重载完毕
   help: |
@@ -44,6 +46,14 @@ msg:
   gui-prev-page-icon-title: §a< 上一页
   gui-prev-page-icon-lore:
     - §e上一页
+  gui-shop-description-icon-title: §a全球市场
+  gui-shop-description-icon-lore:
+    - §e可使用指令 §b/gs sell [价格]
+    - §e将手中所有物品上架至全球市场
+  gui-self-description-icon-title: §a个人订单
+  gui-self-description-icon-lore:
+    - §e点击上方物品
+    - §e即可下架并取回商品
   gui-next-page-icon-title: §a下一页 >
   gui-next-page-icon-lore:
     - §e下一页
@@ -56,7 +66,8 @@ msg:
     - §e价格升序
   gui-filter-icon-pd-lore:
     - §e价格降序
-  gui-self-item: §e无法购买自己的商品 可通过下架取回
+  gui-self-item-tip-lore:
+    - §e无法购买自己的商品 可通过下架取回
   gui-shop-item-lore:
     - '§a类型: §e{TYPE}'
     - '§a价格: §e{PRICE}'

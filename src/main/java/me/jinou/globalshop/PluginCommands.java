@@ -23,7 +23,7 @@ import java.util.List;
  * @author 69142
  */
 public class PluginCommands implements CommandExecutor, TabCompleter {
-    private static final FileConfiguration config = GlobalShop.getFileConfig();
+    private static final FileConfiguration CONFIG = GlobalShop.getFileConfig();
 
     @Override
     public boolean onCommand(@NonNull CommandSender sender, @NonNull Command command, @NonNull String label, String[] args) {
@@ -99,7 +99,7 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        List<String> blackListItems = config.getStringList("shop.item-black-list");
+        List<String> blackListItems = CONFIG.getStringList("shop.item-black-list");
         String itemMaterial = player.getInventory().getItemInMainHand().getType().toString();
         if (blackListItems.contains(itemMaterial)) {
             player.sendMessage(MsgUtil.get("error-black-list-item"));
@@ -116,8 +116,8 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
         }
 
         if (price <= 0
-                || price < config.getDouble("shop.min-sell-price")
-                || price > config.getDouble("shop.max-sell-price")) {
+                || price < CONFIG.getDouble("shop.min-sell-price")
+                || price > CONFIG.getDouble("shop.max-sell-price")) {
             player.sendMessage(MsgUtil.get("error-invalid-price"));
             return false;
         }
@@ -130,15 +130,25 @@ public class PluginCommands implements CommandExecutor, TabCompleter {
 
         IDataManager dataManager = GlobalShop.get().getDataManager();
         double finalPrice = price;
-        new BukkitRunnable() {
 
+        new BukkitRunnable() {
             @Override
             public void run() {
+                List<ShopItem> playerShopItems = dataManager.getPlayerShopItems(player.getUniqueId(), 0, CONFIG.getInt("shop.sell-limit"));
                 int uid = dataManager.generateUid();
-                new BukkitRunnable() {
 
+                new BukkitRunnable() {
                     @Override
                     public void run() {
+                        if (!player.isOnline()) {
+                            return;
+                        }
+
+                        if (playerShopItems.size() >= CONFIG.getInt("shop.sell-limit")) {
+                            player.sendMessage(MsgUtil.get("error-sell-limit"));
+                            return;
+                        }
+
                         ShopItem shopItem = new ShopItem(
                                 uid,
                                 player.getName(),
